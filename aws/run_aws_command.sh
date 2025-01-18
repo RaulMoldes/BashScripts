@@ -58,3 +58,16 @@ docker run --rm \
   -v "$SCRIPT_DIR":/scripts \
   amazonlinux:2 \
   bash -c "cd /scripts && bash $SCRIPT_NAME  /scripts/config.cfg"
+
+## BORRAR EL CONTNEDOR DESPUÉS DE EJECUTAR EL SCRIPT
+docker rm -f $(docker ps -a -q)
+docker rmi $(docker images -q)
+ocker volume rm $(docker volume ls -qf dangling=true)
+docker system prune -a -f
+docker system prune --volumes -f
+docker container prune -f
+docker image prune -f
+docker volume prune -f
+docker network prune -f
+
+exit 0
