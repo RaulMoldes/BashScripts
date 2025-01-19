@@ -32,6 +32,7 @@ if [ ! -d "$SCRIPT_DIR" ]; then
   exit 1
 fi
 
+SCRIPT_DIR=$(realpath "$SCRIPT_DIR")
 # Obtener la ruta completa del script
 SCRIPT_PATH="$SCRIPT_DIR/$SCRIPT_NAME"
 
@@ -55,14 +56,28 @@ docker run --rm \
   -e AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID" \
   -e AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY" \
   -e AWS_DEFAULT_REGION="$AWS_DEFAULT_REGION" \
-  -v "$SCRIPT_DIR":/scripts \
+  -v "$SCRIPT_DIR":/mnt \
   amazonlinux:2 \
-  bash -c "cd /scripts && bash $SCRIPT_NAME  /scripts/config.cfg"
+  bash -c "
+    yum install -y unzip curl &&
+    curl 'https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip' -o 'awscliv2.zip' &&
+    unzip awscliv2.zip &&
+    ./aws/install &&
+    aws --version &&
+    cd /mnt &&
+    chmod +x ./$SCRIPT_NAME &&
+    exec ./$SCRIPT_NAME
+  "
 
-## BORRAR EL CONTNEDOR DESPUÉS DE EJECUTAR EL SCRIPT
-docker rm -f $(docker ps -a -q)
+
+# Verificar si hubo un error al ejecutar el script
+if [ $? -ne 0 ]; then
+  echo "Error al ejecutar el script."
+  
+fi
+
+## CLEAN UP
 docker rmi $(docker images -q)
-ocker volume rm $(docker volume ls -qf dangling=true)
 docker system prune -a -f
 docker system prune --volumes -f
 docker container prune -f
